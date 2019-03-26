@@ -12,13 +12,12 @@ vedioWidget::vedioWidget(QWidget *parent) :
 {
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setMouseTracking(true);
-    desktop = &QApplication::desktop()->rect();
-    qDebug()<<*desktop;
+    desktop = QApplication::desktop()->rect();
 
     initEnumToStringList();
 
     NS_init();
-//    connect();//测试
+    connect();//测试
 }
 
 vedioWidget::~vedioWidget()
@@ -216,6 +215,7 @@ void vedioWidget::mouseMoveEvent(QMouseEvent * event)
 }
 void vedioWidget::mouseReleaseEvent(QMouseEvent *event)
 {
+    qDebug()<<"mouseReleaseEvent";
     m_drag = false;
     if(m_move) {
         m_move = false;
@@ -273,21 +273,26 @@ vedioWidget::ResizeRegion vedioWidget::getResizeRegion(QPoint clientPos)
 void vedioWidget::handleMove(QPoint pt)
 {
     QPoint currentPos = pt - dragPos;
-    if(currentPos.x()<desktop->x()) { //吸附于屏幕左侧
-        currentPos.setX(desktop->x());
+    qDebug()<<"currentPos:"<<currentPos;
+    if(currentPos.x() < desktop.x()) { //吸附于屏幕左侧
+        currentPos.setX(desktop.x());
     }
-    else if (currentPos.x()+this->width()>desktop->width()) { //吸附于屏幕右侧
-        currentPos.setX(desktop->width()-this->width());
+    else if ( (currentPos.x()+this->width()) > desktop.width()) { //吸附于屏幕右侧
+        currentPos.setX(desktop.width()-this->width());
     }
-    if(currentPos.y()<desktop->y()) { //吸附于屏幕顶部
-        currentPos.setY(desktop->y());
+    if(currentPos.y() < desktop.y()) { //吸附于屏幕顶部
+        currentPos.setY(desktop.y());
     }
+    qDebug()<<"currentPos:"<<currentPos;
     move(currentPos);
 }
 void vedioWidget::handleResize()
 {
     int xdiff = QCursor::pos().x() - resizeDownPos.x();
     int ydiff = QCursor::pos().y() - resizeDownPos.y();
+
+    qDebug()<<"xdiff:"<<xdiff<<" ydiff:"<<ydiff;
+
     switch (resizeRegion)
     {
     case East:

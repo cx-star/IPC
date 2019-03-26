@@ -67,11 +67,11 @@ private:
         West,
         NorthWest
     };
-    bool m_drag, m_move;
+    bool m_drag=false, m_move=false;
     QPoint dragPos, resizeDownPos;
     const int resizeBorderWidth = 5;
     ResizeRegion resizeRegion=Default;
-    QRect mouseDownRect, *desktop;
+    QRect mouseDownRect, desktop;
     void setResizeCursor(ResizeRegion region);
     ResizeRegion getResizeRegion(QPoint clientPos);
     void handleMove(QPoint pt);
