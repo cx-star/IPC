@@ -4,6 +4,7 @@
 #include <QMetaEnum>
 #include <QWidget>
 #include <QStringList>
+#include <QMouseEvent>
 #include "inc/NS_NET_define.h"
 
 namespace Ui {
@@ -52,6 +53,33 @@ private:
                             NS_U64 u64TimeStamp,    /* 时间戳*/
                             NS_STREAM_INFO_S *pStreamInfo,/*码流属性*/
                             void* pUserData);        /* 用户数据*/
+
+    //不带标题栏（FramelessWindowHint）的窗体移动及调整大小
+    enum ResizeRegion
+    {
+        Default,
+        North,
+        NorthEast,
+        East,
+        SouthEast,
+        South,
+        SouthWest,
+        West,
+        NorthWest
+    };
+    bool m_drag, m_move;
+    QPoint dragPos, resizeDownPos;
+    const int resizeBorderWidth = 5;
+    ResizeRegion resizeRegion=Default;
+    QRect mouseDownRect, *desktop;
+    void setResizeCursor(ResizeRegion region);
+    ResizeRegion getResizeRegion(QPoint clientPos);
+    void handleMove(QPoint pt);
+    void handleResize();
+protected:
+    void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
 };
 
 #endif // MAINWIDGET_H
