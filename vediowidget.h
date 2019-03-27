@@ -5,6 +5,7 @@
 #include <QWidget>
 #include <QStringList>
 #include <QMouseEvent>
+#include <QMenu>
 #include "inc/NS_NET_define.h"
 
 namespace Ui {
@@ -71,15 +72,18 @@ private:
     QPoint dragPos, resizeDownPos;
     const int resizeBorderWidth = 5;
     ResizeRegion resizeRegion=Default;
-    QRect mouseDownRect, desktop;
+    QRect mouseDownRect, DesktopWidgetRect;
     void setResizeCursor(ResizeRegion region);
     ResizeRegion getResizeRegion(QPoint clientPos);
     void handleMove(QPoint pt);
     void handleResize();
+
+    QMenu *m_contextMenu;
 protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
+    void contextMenuEvent(QContextMenuEvent *event);
 };
 
 #endif // MAINWIDGET_H

@@ -12,7 +12,12 @@ vedioWidget::vedioWidget(QWidget *parent) :
 {
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setMouseTracking(true);
-    desktop = QApplication::desktop()->rect();
+    DesktopWidgetRect = QApplication::desktop()->rect();
+    m_contextMenu = new QMenu;
+    QAction *m_addAction = new QAction("add Item", this);
+    QAction *m_delAction = new QAction("del Item", this);
+    m_contextMenu->addAction(m_addAction);
+    m_contextMenu->addAction(m_delAction);
 
     initEnumToStringList();
 
@@ -91,16 +96,16 @@ int vedioWidget::OnStreamFunc(unsigned int u32ChnHandle, unsigned int u32DataTyp
 {
     Q_UNUSED(pUserData)
     vedioWidget* p = static_cast<vedioWidget*>(pUserData);
-    qDebug()<<"u32ChnHandle:"<<u32ChnHandle<<" u32DataType:"<<u32DataType<<" u64TimeStamp:"<<u64TimeStamp<<
-              " enAudioFormat:"<<StringList_NS_AUDIO_FORMAT_E[(int)pStreamInfo->struAencChAttr.enAudioFormat]<<
-              " enVideoFormat:"<<StringList_tagNS_VIDEO_FORMAT_E[(int)pStreamInfo->struVencChAttr.enVideoFormat];
+//    qDebug()<<"u32ChnHandle:"<<u32ChnHandle<<" u32DataType:"<<u32DataType<<" u64TimeStamp:"<<u64TimeStamp<<
+//              " enAudioFormat:"<<StringList_NS_AUDIO_FORMAT_E[(int)pStreamInfo->struAencChAttr.enAudioFormat]<<
+//              " enVideoFormat:"<<StringList_tagNS_VIDEO_FORMAT_E[(int)pStreamInfo->struVencChAttr.enVideoFormat];
     if (!p->m_u32PlayerHandle)//m_u32PlayerHandle未初始化
     {
         qDebug()<<"NS_PLAYER_Open:"<<NS_PLAYER_Open(&p->m_u32PlayerHandle, (unsigned int)(p->hwnd), &p->m_stStreamInfo);
     }
 
     if( u32DataType == NS_STREAM_TYPE_VIDEO){
-        qDebug()<<"NS_PLAYER_InputData:"<<NS_PLAYER_InputData(p->m_u32PlayerHandle, u32DataType, pu8Buffer, u32Length, u64TimeStamp);
+        qDebug()<<"NS_PLAYER_InputData:"<<NS_PLAYER_InputData(p->m_u32PlayerHandle, u32DataType, pu8Buffer, u32Length, u64TimeStamp)<<" u64TimeStamp:"<<u64TimeStamp;
     }
     return 0;
 }
@@ -274,14 +279,14 @@ void vedioWidget::handleMove(QPoint pt)
 {
     QPoint currentPos = pt - dragPos;
     qDebug()<<"currentPos:"<<currentPos;
-    if(currentPos.x() < desktop.x()) { //吸附于屏幕左侧
-        currentPos.setX(desktop.x());
+    if(currentPos.x() < DesktopWidgetRect.x()) { //吸附于屏幕左侧
+        currentPos.setX(DesktopWidgetRect.x());
     }
-    else if ( (currentPos.x()+this->width()) > desktop.width()) { //吸附于屏幕右侧
-        currentPos.setX(desktop.width()-this->width());
+    else if ( (currentPos.x()+this->width()) > DesktopWidgetRect.width()) { //吸附于屏幕右侧
+        currentPos.setX(DesktopWidgetRect.width()-this->width());
     }
-    if(currentPos.y() < desktop.y()) { //吸附于屏幕顶部
-        currentPos.setY(desktop.y());
+    if(currentPos.y() < DesktopWidgetRect.y()) { //吸附于屏幕顶部
+        currentPos.setY(DesktopWidgetRect.y());
     }
     qDebug()<<"currentPos:"<<currentPos;
     move(currentPos);
@@ -341,5 +346,9 @@ void vedioWidget::handleResize()
         break;
     }
     }
+}
+void vedioWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    m_contextMenu->exec(event->globalPos());
 }
 
