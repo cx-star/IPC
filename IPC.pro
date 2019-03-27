@@ -28,6 +28,8 @@ SOURCES += \
         main.cpp \
     vediowidget.cpp
 
+PRECOMPILED_HEADER += utf8.h
+
 HEADERS += \
     inc/NS_DECODER.h \
     inc/NS_DECODER_define.h \
@@ -41,7 +43,8 @@ HEADERS += \
     inc/NVR_NET.h \
     inc/NVR_NET_define.h \
     inc/nvr_sdk.h \
-    vediowidget.h
+    vediowidget.h \
+    utf8.h
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib -lns_net -lns_player
 else:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib -lns_netD  -lns_playerD

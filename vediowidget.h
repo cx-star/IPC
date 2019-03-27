@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QMouseEvent>
 #include <QMenu>
+#include <QSettings>
 #include "inc/NS_NET_define.h"
 
 namespace Ui {
@@ -78,7 +79,9 @@ private:
     void handleMove(QPoint pt);
     void handleResize();
 
-    QMenu *m_contextMenu;
+    static QMenu *m_contextMenu;
+    static QSettings *m_setting;
+    static void initContextMenu();
 protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);

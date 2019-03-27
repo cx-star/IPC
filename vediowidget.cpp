@@ -7,17 +7,17 @@
 #include "inc/NS_MP4.h"
 #include "inc/NS_PLAYER.h"
 
+QMenu *vedioWidget::m_contextMenu=0;
+QSettings *vedioWidget::m_setting=0;
+
 vedioWidget::vedioWidget(QWidget *parent) :
     QWidget(parent)
 {
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setMouseTracking(true);
     DesktopWidgetRect = QApplication::desktop()->rect();
-    m_contextMenu = new QMenu;
-    QAction *m_addAction = new QAction("add Item", this);
-    QAction *m_delAction = new QAction("del Item", this);
-    m_contextMenu->addAction(m_addAction);
-    m_contextMenu->addAction(m_delAction);
+
+    initContextMenu();
 
     initEnumToStringList();
 
@@ -347,8 +347,24 @@ void vedioWidget::handleResize()
     }
     }
 }
+
+void vedioWidget::initContextMenu()
+{
+//     m_setting,m_contextMenu;
+
+    if(!m_setting)
+        m_setting = new QSettings(QCoreApplication::applicationDirPath()+"/set.ini",QSettings::IniFormat);
+    if(!m_contextMenu)
+        m_contextMenu = new QMenu;
+    m_contextMenu->clear();
+    QAction *m_addAction = new QAction("当前",m_contextMenu);
+    QAction *m_delAction = new QAction("增加一个",m_contextMenu);
+    m_contextMenu->addAction(m_addAction);
+    m_contextMenu->addAction(m_delAction);
+}
 void vedioWidget::contextMenuEvent(QContextMenuEvent *event)
 {
+    initContextMenu();
     m_contextMenu->exec(event->globalPos());
 }
 
