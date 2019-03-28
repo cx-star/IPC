@@ -7,11 +7,8 @@
 #include <QMouseEvent>
 #include <QMenu>
 #include <QSettings>
+#include <QTimer>
 #include "inc/NS_NET_define.h"
-
-namespace Ui {
-class MainWidget;
-}
 
 //vector类型作为class的static成员，需要在class外 define。
 static QStringList StringList_NS_NETSTAT_E,
@@ -26,17 +23,19 @@ class vedioWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit vedioWidget(QWidget *parent = 0);
+    explicit vedioWidget(const QString WidgetID = "1", QWidget *parent = 0);//关键字explicit，可以阻止不应该允许的经过转换构造函数进行的隐式转换的发生
     ~vedioWidget();
 
 private slots:
     void connect();
+    void oneTimerShot();
 
 private:
     void initEnumToStringList();
 
     NS_LOGIN_INFO_S loginInfo;
     unsigned int m_u32DevHandle=0;
+    unsigned int m_u32DevHandle2=0;
     unsigned int m_u32StreamHandle=0;
     unsigned int m_u32PlayerHandle=0;
     NS_STREAM_INFO_S m_stStreamInfo;
@@ -81,7 +80,9 @@ private:
 
     static QMenu *m_contextMenu;
     static QSettings *m_setting;
-    static void initContextMenu();
+    void initContextMenu();
+    QString currentWidgetId;
+    QThread *testThread;
 protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
