@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QStringList>
+#include <QDateTime>
 #include "vediowidget.h"
 #include "inc/nvr_sdk.h"
 #include "inc/NS_NET.h"
@@ -17,25 +18,27 @@
 #define INI_PWD_DEF "admin"
 #define INT_PORT_DEF 554
 
+#define INI_ID_LIST "widgetIdList"
+
 QMenu *vedioWidget::m_contextMenu=0;
 QSettings *vedioWidget::m_setting=0;
+bool vedioWidget::isInit = false;
+bool vedioWidget::isFirstWidget = true;
 
-vedioWidget::vedioWidget(const QString WidgetID, QWidget *parent) :
-    currentWidgetId(WidgetID),QWidget(parent)
+vedioWidget::vedioWidget(QWidget *parent) :
+    QWidget(parent)
 {
 
     this->setWindowFlag(Qt::FramelessWindowHint);
-    this->setMouseTracking(true);
-    DesktopWidgetRect = QApplication::desktop()->rect();
+    this->setMouseTracking(true);//用来更改窗口大小
+    DesktopWidgetRect = QApplication::desktop()->rect();//更改窗口大小时用
 
     NS_init();
     initEnumToStringList();
 
-
     initContextMenu();
 
-
-    connect();//测试
+    NA_connect();//测试
 }
 
 vedioWidget::~vedioWidget()
@@ -45,8 +48,12 @@ vedioWidget::~vedioWidget()
 void vedioWidget::NS_init()
 {
     hwnd = this->winId();
-    if(currentWidgetId!="1")
+
+    if(isInit){
+        qDebug()<<"init is true";
         return;
+    }
+    isInit = true;
     qDebug()<<"NS_NET_Init:"<<NS_NET_Init();
     qDebug()<<"NS_PLAYER_Init:"<<NS_PLAYER_Init();
     qDebug()<<"NS_MP4_Init:"<<NS_MP4_Init();
@@ -95,9 +102,7 @@ int vedioWidget::NS_connect()
     return 0;
 }
 
-int vedioWidget::OnNetStatusFunc(unsigned int u32DevHandle, /* 设备句柄 */
-                           NS_NETSTAT_E u32Event,
-                           void* pUserData)
+int vedioWidget::OnNetStatusFunc(unsigned int u32DevHandle, NS_NETSTAT_E u32Event, void* pUserData)
 {
     Q_UNUSED(pUserData);
 
@@ -128,9 +133,9 @@ int vedioWidget::OnStreamFunc(unsigned int u32ChnHandle, unsigned int u32DataTyp
 void vedioWidget::init_loginInfo(NS_LOGIN_INFO_S &l)
 {
     memset(&l,0,sizeof(NS_LOGIN_INFO_S));//清零
-    qDebug()<<"init_loginInfo:"<<currentWidgetId;
+    qDebug()<<"init_loginInfo:"<<iniCurrentWidgetId;
 
-    m_setting->beginGroup(currentWidgetId);
+    m_setting->beginGroup(iniCurrentWidgetId);
     qstrcpy(l.szHost,m_setting->value(INI_HOST,INT_NAME_DEF).toString().toLocal8Bit().data());//
     qstrcpy(l.szUsername,m_setting->value(INT_NAME,INI_PWD_DEF).toString().toLocal8Bit().data());
     qstrcpy(l.szPassword,m_setting->value(INI_PWD,INI_PWD_DEF).toString().toLocal8Bit().data());
@@ -144,12 +149,32 @@ void vedioWidget::init_loginInfo(NS_LOGIN_INFO_S &l)
     l.stNetProtocol.eSocketType = SOCKET_TYPE_TCP;
 }
 
-void vedioWidget::connect()
+void vedioWidget::NA_connect()
 {
     qDebug()<<"connect:"<<NS_connect();
 }
 
 void vedioWidget::oneTimerShot()
+{
+
+}
+
+void vedioWidget::m_setAction_toggled()
+{
+
+}
+
+void vedioWidget::m_addAction_toggled()
+{
+
+}
+
+void vedioWidget::m_delAction_toggled()
+{
+
+}
+
+void vedioWidget::m_quitAction_toggled()
 {
 
 }
@@ -380,29 +405,53 @@ void vedioWidget::initContextMenu()
     if(!m_setting){
         m_setting = new QSettings(QCoreApplication::applicationDirPath()+"/set.ini",QSettings::IniFormat);
         m_setting->setIniCodec("GB18030");
-        const QStringList childGroups = m_setting->childGroups();
-        if(!childGroups.contains(currentWidgetId)){
-            m_setting->beginGroup(currentWidgetId);
-            m_setting->setValue(INI_HOST,"192.168.1.222");
-            m_setting->setValue(INT_NAME,INT_NAME_DEF);
-            m_setting->setValue(INI_PWD,INI_PWD_DEF);
-            m_setting->setValue(INT_PORT,INT_PORT_DEF);
-            m_setting->endGroup();
-        }
     }
     if(!m_contextMenu){
         m_contextMenu = new QMenu;
         //m_contextMenu->clear();
-        m_contextMenu->addAction("设置");
-        m_contextMenu->addAction("增加一个");
-        m_contextMenu->addAction("删除");
-        m_contextMenu->addAction("退出");
+        QAction *m_setAction = new QAction("设置",m_contextMenu);
+        QAction *m_addAction = new QAction("增加",m_contextMenu);
+        QAction *m_delAction = new QAction("删除",m_contextMenu);
+        QAction *m_quitAction = new QAction("退出",m_contextMenu);
+        connect(m_setAction,SIGNAL(toggled()),this,SLOT(m_setAction_toggled()));
+        connect(m_addAction,SIGNAL(toggled()),this,SLOT(m_addAction_toggled()));
+        connect(m_delAction,SIGNAL(toggled()),this,SLOT(m_delAction_toggled()));
+        connect(m_quitAction,SIGNAL(toggled()),this,SLOT(m_quitAction_toggled()));
+        m_contextMenu->addAction(m_setAction);
+        m_contextMenu->addAction(m_addAction);
+        m_contextMenu->addAction(m_delAction);
+        m_contextMenu->addAction(m_quitAction);
     }
-    QString nextWidgetId = QString("%1").arg(currentWidgetId.toInt()+1);
-    if(m_setting->childGroups().contains(nextWidgetId)){
-        qDebug()<<"nextWidgetId:"<<nextWidgetId;
-        vedioWidget *vw = new vedioWidget(nextWidgetId);
-        vw->show();
+
+    if(isFirstWidget){//仅第一个窗口
+        isFirstWidget = false;
+
+        IniWidgetIdList= m_setting->value(INI_ID_LIST).toStringList();//根据INI_ID_LIST初始化 静态列表
+        if(IniWidgetIdList.isEmpty()){//表格为空
+            IniWidgetIdList.append(QDateTime::currentSecsSinceEpoch());
+        }
+
+        //对childGroups没有的 初始化
+        QStringList iniIdList = m_setting->childGroups();//
+        foreach (QString id, iniIdList) {
+            if(!IniWidgetIdList.contains(id)){
+                m_setting->beginGroup(id);
+                m_setting->setValue(INI_HOST,INI_HOST_DEF);
+                m_setting->setValue(INT_NAME,INT_NAME_DEF);
+                m_setting->setValue(INI_PWD,INI_PWD_DEF);
+                m_setting->setValue(INT_PORT,INT_PORT_DEF);
+                m_setting->endGroup();
+            }
+        }
+        iniCurrentWidgetId = IniWidgetIdList[1];
+        IniWidgetIdList.removeAll(iniCurrentWidgetId);
+
+        QString nextWidgetId = QString("%1").arg(iniCurrentWidgetId.toInt()+1);
+        if(m_setting->childGroups().contains(nextWidgetId)){
+            qDebug()<<"nextWidgetId:"<<nextWidgetId;
+            vedioWidget *vw = new vedioWidget(nextWidgetId);
+            vw->show();
+        }
     }
 }
 void vedioWidget::contextMenuEvent(QContextMenuEvent *event)

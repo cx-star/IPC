@@ -18,18 +18,24 @@ StringList_NS_AUDIO_BITWIDTH_E,
 StringList_NS_AUDIO_SAMPLE_RATE_E,
 StringList_NS_SOUND_MODE_E;
 
+#define DEFAULT_WIDGET_ID "1"
+
 class vedioWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit vedioWidget(const QString WidgetID = "1", QWidget *parent = 0);//关键字explicit，可以阻止不应该允许的经过转换构造函数进行的隐式转换的发生
+    explicit vedioWidget(QWidget *parent = 0);//关键字explicit，可以阻止不应该允许的经过转换构造函数进行的隐式转换的发生
     ~vedioWidget();
 
 private slots:
-    void connect();
+    void NA_connect();
     void oneTimerShot();
 
+    static void m_setAction_toggled();
+    void m_addAction_toggled();
+    void m_delAction_toggled();
+    void m_quitAction_toggled();
 private:
     void initEnumToStringList();
 
@@ -43,6 +49,7 @@ private:
     WId hwnd;
 
     void NS_init();
+    static bool isInit;
     int NS_connect();
     void init_loginInfo(NS_LOGIN_INFO_S& l);
     static int OnNetStatusFunc(unsigned int u32DevHandle, NS_NETSTAT_E u32Event, void *pUserData);
@@ -80,8 +87,10 @@ private:
 
     static QMenu *m_contextMenu;
     static QSettings *m_setting;
+    static bool isFirstWidget;
     void initContextMenu();
-    QString currentWidgetId;
+    QString iniCurrentWidgetId;
+    static QStringList IniWidgetIdList;
     QThread *testThread;
 protected:
     void mousePressEvent(QMouseEvent *event);

@@ -26,7 +26,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-    vediowidget.cpp
+    vediowidget.cpp \
+    mainwidget.cpp
 
 PRECOMPILED_HEADER += utf8.h
 
@@ -44,9 +45,11 @@ HEADERS += \
     inc/NVR_NET_define.h \
     inc/nvr_sdk.h \
     vediowidget.h \
-    utf8.h
+    utf8.h \
+    mainwidget.h
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib -lns_net -lns_player
 else:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib -lns_netD  -lns_playerD
 
-FORMS +=
+FORMS += \
+    mainwidget.ui
