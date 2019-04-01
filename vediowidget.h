@@ -7,51 +7,66 @@
 #include <QMouseEvent>
 #include <QMenu>
 #include <QSettings>
-#include <QTimer>
 #include "inc/NS_NET_define.h"
+#include "inc/NVR_NET_define.h"
 
 //vector类型作为class的static成员，需要在class外 define。
-static QStringList StringList_NS_NETSTAT_E,
-StringList_tagNS_VIDEO_FORMAT_E,
-StringList_NS_AUDIO_FORMAT_E,
-StringList_NS_AUDIO_BITWIDTH_E,
-StringList_NS_AUDIO_SAMPLE_RATE_E,
-StringList_NS_SOUND_MODE_E;
+static QStringList StringList_NS_NETSTAT_E,StringList_tagNS_VIDEO_FORMAT_E,StringList_NS_AUDIO_FORMAT_E,
+                   StringList_NS_AUDIO_BITWIDTH_E,StringList_NS_AUDIO_SAMPLE_RATE_E,StringList_NS_SOUND_MODE_E;
 
-#define DEFAULT_WIDGET_ID "1"
+#define DEV_TYPE_NUL 0
+#define DEV_TYPE_IPC 1
+#define DEV_TYPE_NVR 2
+struct vedioWidgetRef{
+    QString id;//对应setting的group
+    uint devType;// 0:IPC 1:NVR
+    QString host;
+    uint port;
+    QString name;
+    QString pwd;
+    uint channelId;//码流序号
+    QString title;//自定义名称
+};
 
 class vedioWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit vedioWidget(QWidget *parent = 0);//关键字explicit，可以阻止不应该允许的经过转换构造函数进行的隐式转换的发生
+    explicit vedioWidget(vedioWidgetRef ref, QWidget *parent = nullptr);//关键字explicit，可以阻止不应该允许的经过转换构造函数进行的隐式转换的发生
     ~vedioWidget();
 
-private slots:
-    void NA_connect();
-    void oneTimerShot();
+    QString getWidgetId();
+    QString getWidgetTitle();
+    bool getIsStart();
 
-    static void m_setAction_toggled();
-    void m_addAction_toggled();
-    void m_delAction_toggled();
-    void m_quitAction_toggled();
+signals:
+    void contextAt(vedioWidget* id);
+    void m_signals_saveLoc(const QString& id,const QPoint& p,const QSize& s);
+    void m_signals_loadLoc(vedioWidget *);
+    void m_signals_channelNames(const QString& id,const QStringList& names);
 private:
     void initEnumToStringList();
 
     NS_LOGIN_INFO_S loginInfo;
-    unsigned int m_u32DevHandle=0;
-    unsigned int m_u32DevHandle2=0;
-    unsigned int m_u32StreamHandle=0;
+    NS_DEV_CAPS_S cfg_dev_caps;
+    NS_CA_AO_INFO_S cfg_ca_ao_info;
+    unsigned int m_u32DevHandle=0;//ipc nvr 通用
+    unsigned int m_u32StreamHandle=0;//ipc nvr 通用
     unsigned int m_u32PlayerHandle=0;
-    NS_STREAM_INFO_S m_stStreamInfo;
+    NS_STREAM_INFO_S m_stStreamInfo;//ipc nvr 通用
     NS_SERVER_INFO_S cfg_server_info;
     WId hwnd;
 
+    QStringList channelNames;
+
     void NS_init();
-    static bool isInit;
+    static bool isNSInit;
+    bool isNSStart=false;
+    bool isNSConnect=false;
     int NS_connect();
-    void init_loginInfo(NS_LOGIN_INFO_S& l);
+    int NS_start();
+    int NS_stop();
     static int OnNetStatusFunc(unsigned int u32DevHandle, NS_NETSTAT_E u32Event, void *pUserData);
 
     static int OnStreamFunc(unsigned int u32ChnHandle,/* 通道句柄 */
@@ -61,6 +76,12 @@ private:
                             NS_U64 u64TimeStamp,    /* 时间戳*/
                             NS_STREAM_INFO_S *pStreamInfo,/*码流属性*/
                             void* pUserData);        /* 用户数据*/
+
+    NVR_LOGIN_INFO_S nvr_login_info;
+    sNvrSDKDevinfoRes nvr_dev_info;
+    void NVR_init();
+    static bool isNVRInit;
+    void NVR_start();
 
     //不带标题栏（FramelessWindowHint）的窗体移动及调整大小
     enum ResizeRegion
@@ -85,13 +106,20 @@ private:
     void handleMove(QPoint pt);
     void handleResize();
 
-    static QMenu *m_contextMenu;
-    static QSettings *m_setting;
-    static bool isFirstWidget;
+    vedioWidgetRef m_ref;
+
+    QMenu *m_contextMenu;
+    QAction *m_setAction,*m_saveLocAction,*m_loadLocAction,*m_delAction,*m_quitAction;
     void initContextMenu();
-    QString iniCurrentWidgetId;
-    static QStringList IniWidgetIdList;
-    QThread *testThread;
+private slots:
+    //菜单对应槽函数
+    void m_setAction_triggered();
+    void m_saveLocAction_triggered();
+    void m_loadLocAction_triggered();
+    void m_delAction_triggered();
+    void m_quitAction_triggered();
+
+    void testSlot(uint a,uint b,uint c,uint d,uint e);
 protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);

@@ -1,17 +1,19 @@
 ﻿#include "vediowidget.h"
-#include "mainwidget.h"
+#include "mainform.h"
 #include <QApplication>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    MainWidgetT mw;
-    mw.show();
-    //    vedioWidget w;
-//    w.show();
-//    vedioWidget w2("2");
-//    w2.show();
+//    MainForm mw;
+//    mw.show();
+
+    //test
+    vedioWidgetRef ref;
+    ref.devType = DEV_TYPE_NVR;
+    vedioWidget w(ref);
+    w.show();
 
     return a.exec();
 }
