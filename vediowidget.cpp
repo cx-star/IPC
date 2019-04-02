@@ -3,8 +3,11 @@
 #include <QDesktopWidget>
 #include <QStringList>
 #include <QDateTime>
+#include <QTimer>
 #include "vediowidget.h"
 #include "testform.h"
+
+#include "Windows.h"
 
 #include "inc/NS_NET.h"
 #include "inc/NS_MP4.h"
@@ -20,6 +23,9 @@ vedioWidget::vedioWidget(vedioWidgetRef ref, QWidget *parent) :
     QWidget(parent),m_ref(ref)
 {
     this->setWindowFlag(Qt::FramelessWindowHint);
+    this->setWindowFlag(Qt::WindowStaysOnTopHint);
+    connect(qApp,SIGNAL(applicationStateChanged(Qt::ApplicationState)),this,SLOT(m_ApplicationStateChange(Qt::ApplicationState)));
+    QTimer::singleShot(1000,this,SLOT(m_checkIsVisible()));
     this->setMouseTracking(true);//用来更改窗口大小
     DesktopWidgetRect = QApplication::desktop()->rect();//更改窗口大小时用
 
@@ -34,7 +40,7 @@ vedioWidget::vedioWidget(vedioWidgetRef ref, QWidget *parent) :
     }else if(ref.devType == DEV_TYPE_NVR){
         NS_init();
         NVR_init();
-        //NVR_start();
+        NVR_start();
     }
 }
 
@@ -480,6 +486,23 @@ void vedioWidget::m_quitAction_triggered()
 
 }
 
+void vedioWidget::m_ApplicationStateChange(Qt::ApplicationState state)
+{
+    qDebug()<<state;
+    if(state==Qt::ApplicationInactive){
+        this->activateWindow();
+        this->raise();
+    }
+}
+
+void vedioWidget::m_checkIsVisible()
+{
+//    SetWindowPos((HWND)this->winId(),HWND_TOPMOST,this->pos().x(),this->pos().y(),this->width(),this->height(),SWP_SHOWWINDOW);
+    QTimer::singleShot(1000,this,SLOT(m_checkIsVisible()));
+    this->activateWindow();
+    this->raise();
+}
+
 void vedioWidget::testSlot(uint a, uint b, uint c, uint d, uint e)
 {
     qDebug()<<a<<" "<<b<<" "<<c<<" "<<d<<" "<<e;
@@ -504,5 +527,7 @@ void vedioWidget::testSlot(uint a, uint b, uint c, uint d, uint e)
         qDebug()<<QDateTime::fromSecsSinceEpoch(static_cast<qint64>(reinterpret_cast<sNvrSDKRecSeg*>(pRes->segs)[i].stime)).toString("yy-MM-dd hh:mm:ss")
                <<"-"<<QDateTime::fromSecsSinceEpoch(static_cast<qint64>(reinterpret_cast<sNvrSDKRecSeg*>(pRes->segs)[i].etime)).toString("yy-MM-dd hh:mm:ss");
     }
+    free(pRes);
+    pRes=nullptr;
 }
 

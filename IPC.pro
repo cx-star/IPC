@@ -50,8 +50,8 @@ HEADERS += \
     mainform.h \
     testform.h
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib -lns_net -lns_player
-else:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib -lns_netD  -lns_playerD
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib -lns_net -lns_player -lUser32
+else:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib -lns_netD  -lns_playerD -lUser32
 
 FORMS += \
     mainform.ui \

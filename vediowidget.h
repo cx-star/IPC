@@ -7,6 +7,7 @@
 #include <QMouseEvent>
 #include <QMenu>
 #include <QSettings>
+#include <QApplication>
 #include "inc/NS_NET_define.h"
 #include "inc/NVR_NET_define.h"
 
@@ -118,6 +119,9 @@ private slots:
     void m_loadLocAction_triggered();
     void m_delAction_triggered();
     void m_quitAction_triggered();
+
+    void m_ApplicationStateChange(Qt::ApplicationState state);
+    void m_checkIsVisible();
 
     void testSlot(uint a,uint b,uint c,uint d,uint e);
 protected:
