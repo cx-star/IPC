@@ -83,6 +83,8 @@ private:
     struct sNvrSDKNetPortAll{
         sNvrSDKNetPort port[NVR_PORT_END];
     }nvr_net_port;
+    sNvrGetOsdReq nvr_osd_req;
+    sNvrOsdCfg nvr_osd_cfg;
 
     void NVR_init();
     static bool isNVRInit;

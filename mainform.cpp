@@ -94,7 +94,7 @@ void MainForm::initVW()
         ref.devType   = m_setting->value(INI_DEV_TYPE,INI_DEV_TYPE_DEF).toUInt();
 
         vedioWidget *vw = new vedioWidget(ref);
-        connect(this,SIGNAL(m_close()),vw,SLOT(close()));//主窗口退出，其它一起退出
+        connect(this,SIGNAL(m_close()),vw,SLOT(close()));//主窗口退出，VM一起退出
         connect(vw,SIGNAL(m_signals_loadLoc(vedioWidget *)),this,SLOT(m_vw_loadLoc(vedioWidget *)));
         connect(vw,SIGNAL(m_signals_saveLoc(const QString&,const QPoint&,const QSize&)),this,SLOT(m_vw_saveLoc(const QString&,const QPoint&,const QSize&)));
         connect(vw,SIGNAL(m_signals_channelNames(const QString&,const QStringList&)),this,SLOT(m_vw_channelNames(const QString&,const QStringList&)));

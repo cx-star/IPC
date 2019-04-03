@@ -40,7 +40,7 @@ vedioWidget::vedioWidget(vedioWidgetRef ref, QWidget *parent) :
     }else if(ref.devType == DEV_TYPE_NVR){
         NS_init();
         NVR_init();
-        NVR_start();
+        //NVR_start();
     }
 }
 
@@ -183,9 +183,9 @@ void vedioWidget::NVR_init()
     qDebug()<<"NVR_NET_Init:"<<NVR_NET_Init();
 
     memset(&nvr_login_info,0,sizeof(NVR_LOGIN_INFO_S));
-    qstrcpy(nvr_login_info.szHost,QString("*").toLocal8Bit().data());
+    qstrcpy(nvr_login_info.szHost,QString("cxstar.oicp.net").toLocal8Bit().data());
     qstrcpy(nvr_login_info.szUsername,QString("admin").toLocal8Bit().data());
-    qstrcpy(nvr_login_info.szPassword,QString("*").toLocal8Bit().data());
+    qstrcpy(nvr_login_info.szPassword,QString("cxstar").toLocal8Bit().data());
     nvr_login_info.u16Port=8109;
     nvr_login_info.cbEventCallBack = OnNetStatusFunc;//网络消息 回调
     nvr_login_info.s32ConnectTimeout = 5;
@@ -197,10 +197,14 @@ void vedioWidget::NVR_init()
     uint sizeOut=0;
     qDebug()<<"NVR_CMD_GET_DEV_INFO:"<<NVR_NET_GetNvrConfig(m_u32DevHandle, NVR_CMD_GET_DEV_INFO, nullptr, 0, &nvr_dev_info, sizeof(sNvrSDKDevinfoRes), &sizeOut);
     qDebug()<<"通道数："<<nvr_dev_info.videoin_chns;
+    for(int i=0;i<nvr_dev_info.videoin_chns;i++){
+        memset(&nvr_osd_req,0,sizeof(sNvrGetOsdReq));
+        nvr_osd_req.chn=i;
+        NVR_NET_GetNvrConfig(m_u32DevHandle, NVR_CMD_GET_OSD, &nvr_osd_req, sizeof(sNvrGetOsdReq), &nvr_osd_cfg, sizeof(sNvrOsdCfg), &sizeOut);
+        qDebug()<<QString::fromUtf8(nvr_osd_cfg.name);
+    }
 
     memset(&nvr_net_port,0,sizeof(sNvrSDKNetPort));
-
-
     qDebug()<<"NVR_CMD_GET_NET_PORT:"<<NVR_NET_GetNvrConfig(m_u32DevHandle, NVR_CMD_GET_NET_PORT, nullptr, 0, &nvr_net_port, sizeof (sNvrSDKNetPortAll), &sizeOut);
     for(int i=NVR_PORT_BEGIN+1;i<NVR_PORT_END;i++){
         qDebug()<<"upnp_en:"<<nvr_net_port.port[i].upnp_en<<" internal_port:"<<nvr_net_port.port[i].internal_port<<" extern_port:"<<nvr_net_port.port[i].extern_port;
@@ -215,7 +219,7 @@ void vedioWidget::NVR_init()
 void vedioWidget::NVR_start()
 {
     QString chn("media=0/channel=0&level=0");
-    uint nPort=nvr_net_port.port[NVR_PORT_RTSP].extern_port;
+    uint nPort=nvr_net_port.port[NVR_PORT_RTSP].upnp_en==0?nvr_net_port.port[NVR_PORT_RTSP].internal_port:nvr_net_port.port[NVR_PORT_RTSP].extern_port;
     NVR_NET_StartStream(&m_u32StreamHandle, m_u32DevHandle, chn.toLocal8Bit().data(), nPort, 0, &m_stStreamInfo, OnStreamFunc, OnStreamFunc, this);
 }
 
