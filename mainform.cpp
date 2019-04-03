@@ -81,6 +81,7 @@ void MainForm::initVW()
             m_setting->setValue(INI_PORT,INI_PORT_DEF);
             m_setting->setValue(INI_TITLE,INI_TITLE_DEF);
             m_setting->setValue(INI_CHANNEL_ID,INI_CHANNEL_ID_DEF);
+            m_setting->setValue(INI_DEV_TYPE,INI_DEV_TYPE_DEF);
         }
         vedioWidgetRef ref;
         ref.host      = m_setting->value(INI_HOST,INI_HOST_DEF).toString();
@@ -90,6 +91,8 @@ void MainForm::initVW()
         ref.pwd       = m_setting->value(INI_PWD,INI_PWD_DEF).toString();
         ref.title     = m_setting->value(INI_TITLE,INI_TITLE_DEF).toString();
         ref.channelId = m_setting->value(INI_CHANNEL_ID,INI_CHANNEL_ID_DEF).toUInt();
+        ref.devType   = m_setting->value(INI_DEV_TYPE,INI_DEV_TYPE_DEF).toUInt();
+
         vedioWidget *vw = new vedioWidget(ref);
         connect(this,SIGNAL(m_close()),vw,SLOT(close()));//主窗口退出，其它一起退出
         connect(vw,SIGNAL(m_signals_loadLoc(vedioWidget *)),this,SLOT(m_vw_loadLoc(vedioWidget *)));

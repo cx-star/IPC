@@ -80,6 +80,10 @@ private:
 
     NVR_LOGIN_INFO_S nvr_login_info;
     sNvrSDKDevinfoRes nvr_dev_info;
+    struct sNvrSDKNetPortAll{
+        sNvrSDKNetPort port[NVR_PORT_END];
+    }nvr_net_port;
+
     void NVR_init();
     static bool isNVRInit;
     void NVR_start();
