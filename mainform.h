@@ -5,6 +5,7 @@
 #include <QWidget>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QTimer>
 #include "vediowidget.h"
 
 namespace Ui {
@@ -48,20 +49,24 @@ protected:
 private slots:
     //获取当前vedioWidget
     void m_vw_saveLoc(const QString& id,const QPoint& p,const QSize& s);
-    void m_vw_readLoc(vedioWidget *vw);
+    void m_vw_loadLoc(vedioWidget *vw);
     void m_vw_channelNames(const QString& id,const QStringList& names);
 
     void on_pushButtonQuit_clicked();
 
+    void m_RaiseTimerOver();
+    void m_ApplicationStateChange(Qt::ApplicationState state);
+
 private:
     Ui::MainForm *ui;
 
-    void initContextMenu();
+    void initVW();
     QSettings *m_setting;
     vedioWidget* m_contextAtVediowidget;
 
-
     bool isRealQuit=false;
+
+    QTimer *m_RaiseWindowsTimer;
 };
 
 #endif // MAINFORM_H
