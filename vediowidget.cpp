@@ -36,10 +36,11 @@ vedioWidget::vedioWidget(vedioWidgetRef ref, QWidget *parent) :
     if(ref.devType == DEV_TYPE_IPC){
         NS_init();
         NS_connect();//测试
-        NS_start();
+        //NS_start();
     }else if(ref.devType == DEV_TYPE_NVR){
-        NS_init();
+        NS_PLAYER_Init();
         NVR_init();
+        NVR_login();
         //NVR_start();
     }
 }
@@ -71,9 +72,9 @@ void vedioWidget::NS_init()
     //qDebug()<<"NS_MP4_Init:"<<NS_MP4_Init();
 }
 
-bool vedioWidget::getIsStart()
+bool vedioWidget::isLogin()
 {
-    return isNSStart;
+    return isNSLogin|isNVRLogin;
 }
 
 int vedioWidget::NS_connect()
@@ -92,6 +93,7 @@ int vedioWidget::NS_connect()
 
     //登陆
     if( NS_NET_Login(&m_u32DevHandle, &loginInfo) != 0 ){
+        isNSLogin=false;
         return 2;
     }
 
@@ -120,35 +122,43 @@ int vedioWidget::NS_connect()
 //        return 5;
 //    }
 //    qDebug()<<"NS_CA_AO_INFO_S:"<<cfg_ca_ao_info.ao0<<" "<<cfg_ca_ao_info.ao1;
-
+    isNSLogin=true;
     return 0;
 }
 
 int vedioWidget::NS_start()
 {
-    const char * psChannel = cfg_server_info.channels[m_ref.channelId<cfg_server_info.channelnum?m_ref.channelId:0];
-    if(NS_NET_StartStream(&m_u32StreamHandle, m_u32DevHandle, psChannel, 0, &m_stStreamInfo, OnStreamFunc, OnStreamFunc, this) != 0 ){
-        return 2;
+    if(!isNSLogin){
+        return 1;
     }
-    isNSStart = true;
-    return 0;
+    const char * psChannel = cfg_server_info.channels[m_ref.level<cfg_server_info.channelnum?m_ref.level:0];
+    int ret = NS_NET_StartStream(&m_u32StreamHandle, m_u32DevHandle, psChannel, 0, &m_stStreamInfo, OnStreamFunc, OnStreamFunc, this);
     //    qDebug()<<psChannel<<StringList_NS_AUDIO_FORMAT_E[m_stStreamInfo.struAencChAttr.enAudioFormat]<<StringList_tagNS_VIDEO_FORMAT_E[m_stStreamInfo.struVencChAttr.enVideoFormat];
+
+    isNSStart = (ret==0)?true:false;
+    return ret;
 }
 
 int vedioWidget::NS_stop()
 {
-    if( NS_NET_StopStream(m_u32DevHandle,m_u32StreamHandle) != 0 ){
-        return 2;
-    }
-    isNSStart = false;
-    return 0;
+    if(isNSStart)
+        return 0;
+    int ret = NS_NET_StopStream(m_u32DevHandle,m_u32StreamHandle);
+    isNSStart = (ret==0)?true:false;
+    return ret;
 }
 
 int vedioWidget::OnNetStatusFunc(unsigned int u32DevHandle, NS_NETSTAT_E u32Event, void* pUserData)
 {
-    Q_UNUSED(pUserData);
+    vedioWidget* p = static_cast<vedioWidget*>(pUserData);
 
     qDebug()<<"Handle:"<<u32DevHandle<<" "<<u32Event<<" "<<StringList_NS_NETSTAT_E.at(u32Event);
+    if(NS_NETSTAT_CONNED!=u32Event){
+        p->isNVRLogin=false;
+        p->isNVRStart=false;
+        p->isNSLogin= false;
+        p->isNSStart= false;
+    }
 
     return 0;
 }
@@ -179,19 +189,30 @@ void vedioWidget::NVR_init()
         qDebug()<<"nvr init is true";
         return;
     }
-    isNVRInit = true;
-    qDebug()<<"NVR_NET_Init:"<<NVR_NET_Init();
+    int ret=NVR_NET_Init();
+    isNVRInit = (ret==0)?true:false;
+}
 
+int vedioWidget::NVR_login()
+{
+    if(!isNVRInit)
+        return 1;
+    if(isNVRLogin){
+        NVR_logout();
+    }
     memset(&nvr_login_info,0,sizeof(NVR_LOGIN_INFO_S));
-    qstrcpy(nvr_login_info.szHost,QString("cxstar.oicp.net").toLocal8Bit().data());
-    qstrcpy(nvr_login_info.szUsername,QString("admin").toLocal8Bit().data());
-    qstrcpy(nvr_login_info.szPassword,QString("cxstar").toLocal8Bit().data());
-    nvr_login_info.u16Port=8109;
+    qstrcpy(nvr_login_info.szHost,m_ref.host.toLocal8Bit().data());
+    qstrcpy(nvr_login_info.szUsername,m_ref.name.toLocal8Bit().data());
+    qstrcpy(nvr_login_info.szPassword,m_ref.pwd.toLocal8Bit().data());
+    nvr_login_info.u16Port=static_cast<ushort>(m_ref.port);
     nvr_login_info.cbEventCallBack = OnNetStatusFunc;//网络消息 回调
     nvr_login_info.s32ConnectTimeout = 5;
     nvr_login_info.pUserData = this;
 
-    qDebug()<<"NVR_NET_Login:"<<NVR_NET_Login(&m_u32DevHandle,&nvr_login_info);
+    if(NVR_NET_Login(&m_u32DevHandle,&nvr_login_info)!=0){
+        qDebug()<<"NVR_NET_Login fail";
+        return 2;
+    }
 
     memset(&nvr_dev_info,0,sizeof(sNvrSDKDevinfoRes));
     uint sizeOut=0;
@@ -210,17 +231,41 @@ void vedioWidget::NVR_init()
         qDebug()<<"upnp_en:"<<nvr_net_port.port[i].upnp_en<<" internal_port:"<<nvr_net_port.port[i].internal_port<<" extern_port:"<<nvr_net_port.port[i].extern_port;
     }
 
-    testForm *testF= new testForm;
-    connect(testF,SIGNAL(ss(uint,uint,uint,uint,uint)),this,SLOT(testSlot(uint,uint,uint,uint,uint)));
-    testF->show();
-
+//    testForm *testF= new testForm;
+//    connect(testF,SIGNAL(ss(uint,uint,uint,uint,uint)),this,SLOT(testSlot(uint,uint,uint,uint,uint)));
+//    testF->show();
+    isNVRLogin = true;
+    return 0;
 }
 
-void vedioWidget::NVR_start()
+int vedioWidget::NVR_logout()
 {
-    QString chn("media=0/channel=0&level=0");
-    uint nPort=nvr_net_port.port[NVR_PORT_RTSP].upnp_en==0?nvr_net_port.port[NVR_PORT_RTSP].internal_port:nvr_net_port.port[NVR_PORT_RTSP].extern_port;
-    NVR_NET_StartStream(&m_u32StreamHandle, m_u32DevHandle, chn.toLocal8Bit().data(), nPort, 0, &m_stStreamInfo, OnStreamFunc, OnStreamFunc, this);
+    return NVR_NET_Logout(m_u32DevHandle);
+}
+
+int vedioWidget::NVR_start()
+{
+    if(!isNVRLogin)
+        return 1;
+    QString chn=QString("media=0/channel=%1&level=%2").arg(m_ref.nvr_chn).arg(m_ref.level);
+    uint nPort=nvr_net_port.port[NVR_PORT_RTSP].upnp_en==0?
+                nvr_net_port.port[NVR_PORT_RTSP].internal_port:
+                nvr_net_port.port[NVR_PORT_RTSP].extern_port;
+    int ret = NVR_NET_StartStream(&m_u32StreamHandle, m_u32DevHandle,
+                            chn.toLocal8Bit().data(), nPort,
+                            0, &m_stStreamInfo, OnStreamFunc, OnStreamFunc, this);
+
+    isNVRStart = (ret==0)?true:false;
+    return ret;
+}
+
+int vedioWidget::NVR_stop()
+{
+    if(isNVRStart)
+        return 0;
+    int ret = NVR_NET_StopStream(m_u32DevHandle,m_u32StreamHandle);
+    isNVRStart = (ret==0)?true:false;
+    return ret;
 }
 
 void vedioWidget::initEnumToStringList()
@@ -273,9 +318,14 @@ void vedioWidget::initEnumToStringList()
                                 "NS_SOUND_MODE_BUTT";
 }
 
+QStringList vedioWidget::getChannelNames() const
+{
+    return channelNames;
+}
+
 void vedioWidget::mousePressEvent(QMouseEvent *event)
 {
-//    qDebug()<<"mousePressEvent";
+    //    qDebug()<<"mousePressEvent";
     if (event->button() == Qt::LeftButton) {
         this->m_drag = true;
         this->dragPos = event->pos();

@@ -20,7 +20,7 @@ MainForm::MainForm(QWidget *parent) :
     connect(m_RaiseWindowsTimer,SIGNAL(timeout()),this,SLOT(m_RaiseTimerOver()));
     m_RaiseWindowsTimer->start(10000);
 
-    initVW();
+    readIni();
 }
 
 MainForm::~MainForm()
@@ -54,11 +54,11 @@ void MainForm::m_vw_loadLoc(vedioWidget *vw)
 void MainForm::m_vw_channelNames(const QString &id, const QStringList &names)
 {
     m_setting->beginGroup(id);
-    m_setting->setValue(INI_CHANNEL_NAMES,names);
+    //m_setting->setValue(INI_CHANNEL_NAMES,names);
     m_setting->endGroup();
 }
 
-void MainForm::initVW()
+void MainForm::readIni()
 {
     //QSettings的key、childGroups无法为中文
     m_setting = new QSettings(QCoreApplication::applicationDirPath()+"/set.ini",QSettings::IniFormat);
@@ -80,7 +80,7 @@ void MainForm::initVW()
             m_setting->setValue(INI_PWD,INI_PWD_DEF);
             m_setting->setValue(INI_PORT,INI_PORT_DEF);
             m_setting->setValue(INI_TITLE,INI_TITLE_DEF);
-            m_setting->setValue(INI_CHANNEL_ID,INI_CHANNEL_ID_DEF);
+            m_setting->setValue(INI_IPC_LEVEL,INI_IPC_LEVEL_DEF);
             m_setting->setValue(INI_DEV_TYPE,INI_DEV_TYPE_DEF);
         }
         vedioWidgetRef ref;
@@ -90,17 +90,49 @@ void MainForm::initVW()
         ref.port      = m_setting->value(INI_PORT,INI_PORT_DEF).toUInt();
         ref.pwd       = m_setting->value(INI_PWD,INI_PWD_DEF).toString();
         ref.title     = m_setting->value(INI_TITLE,INI_TITLE_DEF).toString();
-        ref.channelId = m_setting->value(INI_CHANNEL_ID,INI_CHANNEL_ID_DEF).toUInt();
-        ref.devType   = m_setting->value(INI_DEV_TYPE,INI_DEV_TYPE_DEF).toUInt();
+        ref.devType   = m_setting->value(INI_DEV_TYPE,INI_DEV_TYPE_DEF).toString();
+        if(ref.devType==DEV_TYPE_NVR){
+            int num = m_setting->value(INI_NVR_NUM).toInt();
+            QList<QVariant> list_levels =  m_setting->value(INI_NVR_LEVELs).toList();
+            QList<QVariant> list_shows =  m_setting->value(INI_NVR_SHOWs).toList();
+            if(list_levels.size()<num || list_shows.size()<num){
+                qDebug()<<"配置错误:"<<ref.id;
+            }else{
+                for(int i=0;i<num;i++){
+                    if(list_shows.at(i).toBool()==INI_SHOW_TRUE){
+                        ref.nvr_chn = static_cast<uint>(i);
+                        ref.level = list_levels.at(i).toUInt();
+                        initVW(ref);
+                    }
+                }
+            }
+        }else if(ref.devType==DEV_TYPE_IPC && m_setting->value(INI_IPC_SHOW).toBool()==INI_SHOW_TRUE){
 
-        vedioWidget *vw = new vedioWidget(ref);
+            ref.level = m_setting->value(INI_IPC_LEVEL,INI_IPC_LEVEL_DEF).toUInt();
+            initVW(ref);
+        }
+
+        m_setting->endGroup();
+
+    }
+}
+
+void MainForm::initVW(vedioWidgetRef ref)
+{
+    vedioWidget *vw = new vedioWidget(ref);
+    if(vw->isLogin()){
         connect(this,SIGNAL(m_close()),vw,SLOT(close()));//主窗口退出，VM一起退出
         connect(vw,SIGNAL(m_signals_loadLoc(vedioWidget *)),this,SLOT(m_vw_loadLoc(vedioWidget *)));
         connect(vw,SIGNAL(m_signals_saveLoc(const QString&,const QPoint&,const QSize&)),this,SLOT(m_vw_saveLoc(const QString&,const QPoint&,const QSize&)));
         connect(vw,SIGNAL(m_signals_channelNames(const QString&,const QStringList&)),this,SLOT(m_vw_channelNames(const QString&,const QStringList&)));
+        //m_vw_loadLoc(vw);
         vw->show();
-
-        m_setting->endGroup();
+        if(ref.devType==DEV_TYPE_IPC)
+            vw->NS_start();
+        else if(ref.devType==DEV_TYPE_NVR)
+            vw->NVR_start();
+    }else{
+        vw->close();
     }
 }
 

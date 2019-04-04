@@ -24,9 +24,22 @@ class MainForm;
 #define INI_POS "pos"
 #define INI_TITLE "title"
 #define INI_TITLE_DEF "未命名"
-#define INI_CHANNEL_NAMES "names"
-#define INI_CHANNEL_ID "channel"
-#define INI_CHANNEL_ID_DEF 0
+
+#define INI_SHOW_TRUE true
+#define INI_SHOW_FALSE false
+
+#define INI_IPC_NAMES "ipc_names"   //通道名称list
+#define INI_IPC_NUM "ipc_num"       //通道数量
+#define INI_IPC_LEVEL "ipc_level"       //要显示的通道号
+#define INI_IPC_LEVEL_DEF 0
+#define INI_IPC_SHOW "ipc_show"     //通道是否显示
+
+#define INI_NVR_NUM "nvr_num"           //
+#define INI_NVR_LEVELs "nvr_level"      //
+#define INI_NVR_LEVEL_DEF 0
+#define INI_NVR_SHOWs "nvr_show"
+#define INI_NVR_NAMES "nvr_osd"
+
 #define INI_DEV_TYPE "type"
 #define INI_DEV_TYPE_DEF DEV_TYPE_NUL
 
@@ -60,7 +73,8 @@ private slots:
 private:
     Ui::MainForm *ui;
 
-    void initVW();
+    void readIni();
+    void initVW(vedioWidgetRef ref);
     QSettings *m_setting;
     vedioWidget* m_contextAtVediowidget;
 

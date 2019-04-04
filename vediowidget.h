@@ -15,18 +15,19 @@
 static QStringList StringList_NS_NETSTAT_E,StringList_tagNS_VIDEO_FORMAT_E,StringList_NS_AUDIO_FORMAT_E,
                    StringList_NS_AUDIO_BITWIDTH_E,StringList_NS_AUDIO_SAMPLE_RATE_E,StringList_NS_SOUND_MODE_E;
 
-#define DEV_TYPE_NUL 0
-#define DEV_TYPE_IPC 1
-#define DEV_TYPE_NVR 2
+#define DEV_TYPE_NUL "NULL"
+#define DEV_TYPE_IPC "IPC"
+#define DEV_TYPE_NVR "NVR"
 struct vedioWidgetRef{
     QString id;//对应setting的group
-    uint devType;// 0:IPC 1:NVR
+    QString devType;// 0:IPC 1:NVR
     QString host;
     uint port;
     QString name;
     QString pwd;
-    uint channelId;//码流序号
+    uint level;//码流序号
     QString title;//自定义名称
+    uint nvr_chn;
 };
 
 class vedioWidget : public QWidget
@@ -39,7 +40,9 @@ public:
 
     QString getWidgetId();
     QString getWidgetTitle();
-    bool getIsStart();
+    bool isLogin();
+
+    QStringList getChannelNames() const;
 
 signals:
     void contextAt(vedioWidget* id);
@@ -61,13 +64,15 @@ private:
 
     QStringList channelNames;
 
-    void NS_init();
     static bool isNSInit;
+    bool isNSLogin=false;
     bool isNSStart=false;
-    bool isNSConnect=false;
+    void NS_init();
     int NS_connect();
+public slots:
     int NS_start();
     int NS_stop();
+private:
     static int OnNetStatusFunc(unsigned int u32DevHandle, NS_NETSTAT_E u32Event, void *pUserData);
 
     static int OnStreamFunc(unsigned int u32ChnHandle,/* 通道句柄 */
@@ -86,10 +91,17 @@ private:
     sNvrGetOsdReq nvr_osd_req;
     sNvrOsdCfg nvr_osd_cfg;
 
-    void NVR_init();
     static bool isNVRInit;
-    void NVR_start();
+    bool isNVRLogin=false;
+    bool isNVRStart=false;
+    void NVR_init();
+    int NVR_login();
+    int NVR_logout();
+public slots:
+    int NVR_start();
+    int NVR_stop();
 
+private:
     //不带标题栏（FramelessWindowHint）的窗体移动及调整大小
     enum ResizeRegion
     {
