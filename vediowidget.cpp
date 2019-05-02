@@ -19,11 +19,14 @@
 bool vedioWidget::isNSInit = false;
 bool vedioWidget::isNVRInit = false;
 
+#define ReConnectTime 2000
+
 vedioWidget::vedioWidget(vedioWidgetRef ref, QWidget *parent) :
     QWidget(parent),m_ref(ref)
 {
-    this->setWindowFlag(Qt::FramelessWindowHint);
-    this->setWindowFlag(Qt::WindowStaysOnTopHint);
+    setWindowFlags(windowFlags()|Qt::FramelessWindowHint|Qt::WindowStaysOnTopHint);
+//    this->setWindowFlag(Qt::FramelessWindowHint);
+//    this->setWindowFlag(Qt::WindowStaysOnTopHint);
 
 //    QTimer::singleShot(1000,this,SLOT(m_checkIsVisible()));
     this->setMouseTracking(true);//用来更改窗口大小
@@ -31,6 +34,8 @@ vedioWidget::vedioWidget(vedioWidgetRef ref, QWidget *parent) :
 
     initContextMenu();//右键菜单
     initEnumToStringList();//
+
+    connect(this,SIGNAL(net_ABNORMAL_DISCONNED()),this,SLOT(reConnectTimerOver()));
 
     hwnd = this->winId();
     if(ref.devType == DEV_TYPE_IPC){
@@ -49,19 +54,33 @@ vedioWidget::~vedioWidget()
 {
 }
 
-QString vedioWidget::getWidgetId()
+QString vedioWidget::getIniGroupId() const
 {
-    return m_ref.id;
+    return m_ref.IniGroupId;
 }
 
-QString vedioWidget::getWidgetTitle()
+QString vedioWidget::getWidgetTitle() const
 {
     return m_ref.title;
 }
 
+QStringList vedioWidget::getNames() const
+{
+    return channelNames;
+}
+
+QString vedioWidget::getDevType() const
+{
+    return m_ref.devType;
+}
+
+uint vedioWidget::getNvrChn() const
+{
+    return m_ref.nvr_chn;
+}
+
 void vedioWidget::NS_init()
 {
-
     if(isNSInit){
         qDebug()<<"ns init is true";
         return;
@@ -109,7 +128,6 @@ int vedioWidget::NS_connect()
     for(uint i=0;i<cfg_server_info.channelnum;i++){
         channelNames<<cfg_server_info.channels[i];
     }
-//    emit m_signals_channelNames(m_ref.id,channelNames);//构造函数内，无效
 
 //    memset(&cfg_dev_caps,0,sizeof(NS_DEV_CAPS_S));
 //    if(NS_NET_GetServerConfig(m_u32DevHandle, strChannel.toStdString().c_str(), NS_CMD_GET_DEV_CAPS, &cfg_dev_caps, &size) != 0 ){
@@ -131,6 +149,7 @@ int vedioWidget::NS_start()
     if(!isNSLogin){
         return 1;
     }
+    emit m_signals_login(this);//构造函数内，无效
     const char * psChannel = cfg_server_info.channels[m_ref.level<cfg_server_info.channelnum?m_ref.level:0];
     int ret = NS_NET_StartStream(&m_u32StreamHandle, m_u32DevHandle, psChannel, 0, &m_stStreamInfo, OnStreamFunc, OnStreamFunc, this);
     //    qDebug()<<psChannel<<StringList_NS_AUDIO_FORMAT_E[m_stStreamInfo.struAencChAttr.enAudioFormat]<<StringList_tagNS_VIDEO_FORMAT_E[m_stStreamInfo.struVencChAttr.enVideoFormat];
@@ -148,16 +167,37 @@ int vedioWidget::NS_stop()
     return ret;
 }
 
+int vedioWidget::start()
+{
+    if(m_ref.devType==DEV_TYPE_IPC)
+        return NS_start();
+    else if(m_ref.devType==DEV_TYPE_NVR)
+        return NVR_start();
+    return -1;
+}
+
+int vedioWidget::stop()
+{
+    if(m_ref.devType==DEV_TYPE_IPC)
+        return NS_stop();
+    else if(m_ref.devType==DEV_TYPE_NVR)
+        return NVR_stop();
+    return -1;
+}
+
 int vedioWidget::OnNetStatusFunc(unsigned int u32DevHandle, NS_NETSTAT_E u32Event, void* pUserData)
 {
     vedioWidget* p = static_cast<vedioWidget*>(pUserData);
 
     qDebug()<<"Handle:"<<u32DevHandle<<" "<<u32Event<<" "<<StringList_NS_NETSTAT_E.at(u32Event);
-    if(NS_NETSTAT_CONNED!=u32Event){
+    if(NS_NETSTAT_CONNED!=u32Event){//未连接，初始化变量
         p->isNVRLogin=false;
         p->isNVRStart=false;
         p->isNSLogin= false;
         p->isNSStart= false;
+    }
+    if(NS_NETSTAT_ABNORMAL_DISCONNED==u32Event){
+        emit p->net_ABNORMAL_DISCONNED();
     }
 
     return 0;
@@ -218,11 +258,12 @@ int vedioWidget::NVR_login()
     uint sizeOut=0;
     qDebug()<<"NVR_CMD_GET_DEV_INFO:"<<NVR_NET_GetNvrConfig(m_u32DevHandle, NVR_CMD_GET_DEV_INFO, nullptr, 0, &nvr_dev_info, sizeof(sNvrSDKDevinfoRes), &sizeOut);
     qDebug()<<"通道数："<<nvr_dev_info.videoin_chns;
+    channelNames.clear();
     for(int i=0;i<nvr_dev_info.videoin_chns;i++){
         memset(&nvr_osd_req,0,sizeof(sNvrGetOsdReq));
         nvr_osd_req.chn=i;
         NVR_NET_GetNvrConfig(m_u32DevHandle, NVR_CMD_GET_OSD, &nvr_osd_req, sizeof(sNvrGetOsdReq), &nvr_osd_cfg, sizeof(sNvrOsdCfg), &sizeOut);
-        qDebug()<<QString::fromUtf8(nvr_osd_cfg.name);
+        channelNames<<QString::fromUtf8(nvr_osd_cfg.name);
     }
 
     memset(&nvr_net_port,0,sizeof(sNvrSDKNetPort));
@@ -232,7 +273,7 @@ int vedioWidget::NVR_login()
     }
 
 //    testForm *testF= new testForm;
-//    connect(testF,SIGNAL(ss(uint,uint,uint,uint,uint)),this,SLOT(testSlot(uint,uint,uint,uint,uint)));
+//    connect(testF,SIGNAL(ss(uint,uint,uint,uint,uint)),this,SLOT(getQueryRecord(uint,uint,uint,uint,uint)));
 //    testF->show();
     isNVRLogin = true;
     return 0;
@@ -247,6 +288,7 @@ int vedioWidget::NVR_start()
 {
     if(!isNVRLogin)
         return 1;
+    emit m_signals_login(this);//构造函数内，无效
     QString chn=QString("media=0/channel=%1&level=%2").arg(m_ref.nvr_chn).arg(m_ref.level);
     uint nPort=nvr_net_port.port[NVR_PORT_RTSP].upnp_en==0?
                 nvr_net_port.port[NVR_PORT_RTSP].internal_port:
@@ -316,11 +358,6 @@ void vedioWidget::initEnumToStringList()
     StringList_NS_SOUND_MODE_E<<"NS_SOUND_MODE_MOMO"<<
                                 "NS_SOUND_MODE_STEREO"<<
                                 "NS_SOUND_MODE_BUTT";
-}
-
-QStringList vedioWidget::getChannelNames() const
-{
-    return channelNames;
 }
 
 void vedioWidget::mousePressEvent(QMouseEvent *event)
@@ -498,7 +535,7 @@ void vedioWidget::handleResize()
 
 void vedioWidget::initContextMenu()
 {
-    m_contextMenu = new QMenu;
+    m_contextMenu = new QMenu(/*this*/);
      //m_contextMenu->clear();
 
      m_setAction = new QAction("设置",m_contextMenu);
@@ -522,6 +559,9 @@ void vedioWidget::initContextMenu()
 
 void vedioWidget::contextMenuEvent(QContextMenuEvent *event)
 {
+//    m_contextMenu->raise()
+    m_contextMenu->deleteLater();
+    initContextMenu();
     m_contextMenu->exec(event->globalPos());
 }
 
@@ -533,7 +573,7 @@ void vedioWidget::m_setAction_triggered()
 
 void vedioWidget::m_saveLocAction_triggered()
 {
-    emit m_signals_saveLoc(m_ref.id,pos(),size());
+    emit m_signals_saveLoc(this,pos(),size());
 
 }
 
@@ -551,14 +591,14 @@ void vedioWidget::m_quitAction_triggered()
 
 }
 
-void vedioWidget::m_ApplicationStateChange(Qt::ApplicationState state)
-{
-//    qDebug()<<state;
-//    if(state==Qt::ApplicationInactive){
-//        this->activateWindow();
-//        this->raise();
-//    }
-}
+//void vedioWidget::m_ApplicationStateChange(Qt::ApplicationState state)
+//{
+////    qDebug()<<state;
+////    if(state==Qt::ApplicationInactive){
+////        this->activateWindow();
+////        this->raise();
+////    }
+//}
 
 void vedioWidget::m_checkIsVisible()
 {
@@ -568,7 +608,7 @@ void vedioWidget::m_checkIsVisible()
 //    this->raise();
 }
 
-void vedioWidget::testSlot(uint a, uint b, uint c, uint d, uint e)
+void vedioWidget::getQueryRecord(uint a, uint b, uint c, uint d, uint e)
 {
     qDebug()<<a<<" "<<b<<" "<<c<<" "<<d<<" "<<e;
     uint sizeOut;
@@ -589,10 +629,32 @@ void vedioWidget::testSlot(uint a, uint b, uint c, uint d, uint e)
     uint retCount = pRes->item_count;
     qDebug()<<"over:"<<retOver<<" count:"<<retCount<<" size:"<<sizeOut;
     for (uint i=0;i<retCount;i++) {
-        qDebug()<<QDateTime::fromSecsSinceEpoch(static_cast<qint64>(reinterpret_cast<sNvrSDKRecSeg*>(pRes->segs)[i].stime)).toString("yy-MM-dd hh:mm:ss")
-               <<"-"<<QDateTime::fromSecsSinceEpoch(static_cast<qint64>(reinterpret_cast<sNvrSDKRecSeg*>(pRes->segs)[i].etime)).toString("yy-MM-dd hh:mm:ss");
+        qDebug()<<QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(reinterpret_cast<sNvrSDKRecSeg*>(pRes->segs)[i].stime)*1000).toString("yy-MM-dd hh:mm:ss")
+               <<"-"<<QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(reinterpret_cast<sNvrSDKRecSeg*>(pRes->segs)[i].etime)*1000).toString("yy-MM-dd hh:mm:ss");
     }
     free(pRes);
     pRes=nullptr;
+}
+
+void vedioWidget::reConnectTimerOver()
+{
+    qDebug()<<"reConnectTimerOver";
+    if(!isNVRLogin && !isNVRLogin)
+    {
+        if(m_ref.devType == DEV_TYPE_IPC){
+            NS_connect();//测试
+        }else if(m_ref.devType == DEV_TYPE_NVR){
+            NVR_login();
+        }
+    }else if(!isNVRStart && !isNVRStart)
+    {
+        if(m_ref.devType == DEV_TYPE_IPC){
+            NS_start();
+        }else if(m_ref.devType == DEV_TYPE_NVR){
+            NVR_start();
+        }
+    }else
+        return;
+    QTimer::singleShot(ReConnectTime,this,SLOT(reConnectTimerOver()));
 }
 

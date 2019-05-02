@@ -6,6 +6,11 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
+    QWidget w;
+    w.setWindowFlags(Qt::WindowStaysOnTopHint);
+    w.show();
+    w.close();
+
     MainForm mw;
     mw.show();
 

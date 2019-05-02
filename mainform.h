@@ -28,17 +28,16 @@ class MainForm;
 #define INI_SHOW_TRUE true
 #define INI_SHOW_FALSE false
 
-#define INI_IPC_NAMES "ipc_names"   //通道名称list
-#define INI_IPC_NUM "ipc_num"       //通道数量
+#define INI_NAMES "names"   //通道名称list
+#define INI_NUM "num"       //通道数量
+
 #define INI_IPC_LEVEL "ipc_level"       //要显示的通道号
 #define INI_IPC_LEVEL_DEF 0
 #define INI_IPC_SHOW "ipc_show"     //通道是否显示
 
-#define INI_NVR_NUM "nvr_num"           //
 #define INI_NVR_LEVELs "nvr_level"      //
 #define INI_NVR_LEVEL_DEF 0
 #define INI_NVR_SHOWs "nvr_show"
-#define INI_NVR_NAMES "nvr_osd"
 
 #define INI_DEV_TYPE "type"
 #define INI_DEV_TYPE_DEF DEV_TYPE_NUL
@@ -61,9 +60,9 @@ protected:
 
 private slots:
     //获取当前vedioWidget
-    void m_vw_saveLoc(const QString& id,const QPoint& p,const QSize& s);
+    void m_vw_saveLoc(vedioWidget *vw, const QPoint& p, const QSize& s);
     void m_vw_loadLoc(vedioWidget *vw);
-    void m_vw_channelNames(const QString& id,const QStringList& names);
+    void m_vw_login(vedioWidget *vw);
 
     void on_pushButtonQuit_clicked();
 
@@ -73,6 +72,7 @@ private slots:
 private:
     Ui::MainForm *ui;
 
+    QList<vedioWidget*> list;
     void readIni();
     void initVW(vedioWidgetRef ref);
     QSettings *m_setting;

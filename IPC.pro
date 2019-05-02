@@ -28,7 +28,8 @@ SOURCES += \
         main.cpp \
     vediowidget.cpp \
     mainform.cpp \
-    testform.cpp
+    testform.cpp \
+    vediowidgeth264.cpp
 
 PRECOMPILED_HEADER += utf8.h
 
@@ -48,10 +49,15 @@ HEADERS += \
     vediowidget.h \
     utf8.h \
     mainform.h \
-    testform.h
+    testform.h \
+    vediowidgeth264.h \
+    inc/H264Play.h \
+    inc/netsdk.h
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib -lns_net -lns_player -lUser32
-else:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib -lns_netD  -lns_playerD -lUser32
+QMAKE_LFLAGS_WINDOWS= /SUBSYSTEM:WINDOWS,5.01
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/lib -lns_net -lns_player -lUser32 -lH264Play -lNetSdk
+else:CONFIG(debug, debug|release): LIBS += -L$$PWD/lib -lns_netD  -lns_playerD -lUser32 -lH264Play -lNetSdk
 
 FORMS += \
     mainform.ui \

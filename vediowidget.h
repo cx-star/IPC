@@ -19,7 +19,7 @@ static QStringList StringList_NS_NETSTAT_E,StringList_tagNS_VIDEO_FORMAT_E,Strin
 #define DEV_TYPE_IPC "IPC"
 #define DEV_TYPE_NVR "NVR"
 struct vedioWidgetRef{
-    QString id;//对应setting的group
+    QString IniGroupId;//对应setting的group
     QString devType;// 0:IPC 1:NVR
     QString host;
     uint port;
@@ -38,17 +38,18 @@ public:
     explicit vedioWidget(vedioWidgetRef ref, QWidget *parent = nullptr);//关键字explicit，可以阻止不应该允许的经过转换构造函数进行的隐式转换的发生
     ~vedioWidget();
 
-    QString getWidgetId();
-    QString getWidgetTitle();
+    QString getIniGroupId()const;
+    QString getWidgetTitle()const;
+    QStringList getNames() const;
+    QString getDevType() const;
+    uint getNvrChn() const;
     bool isLogin();
-
-    QStringList getChannelNames() const;
 
 signals:
     void contextAt(vedioWidget* id);
-    void m_signals_saveLoc(const QString& id,const QPoint& p,const QSize& s);
+    void m_signals_saveLoc(vedioWidget *,const QPoint&,const QSize&);
     void m_signals_loadLoc(vedioWidget *);
-    void m_signals_channelNames(const QString& id,const QStringList& names);
+    void m_signals_login(vedioWidget *);
 private:
     void initEnumToStringList();
 
@@ -69,9 +70,11 @@ private:
     bool isNSStart=false;
     void NS_init();
     int NS_connect();
-public slots:
     int NS_start();
     int NS_stop();
+public slots:
+    int start();
+    int stop();
 private:
     static int OnNetStatusFunc(unsigned int u32DevHandle, NS_NETSTAT_E u32Event, void *pUserData);
 
@@ -97,7 +100,6 @@ private:
     void NVR_init();
     int NVR_login();
     int NVR_logout();
-public slots:
     int NVR_start();
     int NVR_stop();
 
@@ -138,10 +140,14 @@ private slots:
     void m_delAction_triggered();
     void m_quitAction_triggered();
 
-    void m_ApplicationStateChange(Qt::ApplicationState state);
+    //void m_ApplicationStateChange(Qt::ApplicationState state);
     void m_checkIsVisible();
 
-    void testSlot(uint a,uint b,uint c,uint d,uint e);
+    void getQueryRecord(uint a,uint b,uint c,uint d,uint e);
+signals:
+    void net_ABNORMAL_DISCONNED();
+private slots:
+    void reConnectTimerOver();
 protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
