@@ -50,6 +50,7 @@ signals:
     void m_signals_saveLoc(vedioWidget *,const QPoint&,const QSize&);
     void m_signals_loadLoc(vedioWidget *);
     void m_signals_login(vedioWidget *);
+    void m_signals_mousePress(vedioWidget *);
 private:
     void initEnumToStringList();
 

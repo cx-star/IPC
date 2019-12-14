@@ -369,6 +369,7 @@ void vedioWidget::mousePressEvent(QMouseEvent *event)
         this->resizeDownPos = event->globalPos();
         this->mouseDownRect = this->rect();
 //        qDebug()<<"resizeDownPos:"<<this->resizeDownPos<<" mouseDownRect:"<<this->mouseDownRect;
+        emit m_signals_mousePress(this);
     }
 }
 void vedioWidget::mouseMoveEvent(QMouseEvent * event)

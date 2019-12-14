@@ -99,6 +99,13 @@ void MainForm::m_vw_login(vedioWidget *vw)
     m_setting->beginGroup(curGroup);
 }
 
+void MainForm::m_vw_recentedClicked(vedioWidget *vw)
+{
+    if(list.removeOne(vw)){
+        list.append(vw);
+    }
+}
+
 void MainForm::readIni()
 {
     //QSettings的key、childGroups无法为中文
@@ -164,6 +171,7 @@ void MainForm::initVW(vedioWidgetRef ref)
         connect(vw,SIGNAL(m_signals_loadLoc(vedioWidget *)),this,SLOT(m_vw_loadLoc(vedioWidget *)));
         connect(vw,SIGNAL(m_signals_saveLoc(vedioWidget *,const QPoint&,const QSize&)),this,SLOT(m_vw_saveLoc(vedioWidget *,const QPoint&,const QSize&)));
         connect(vw,SIGNAL(m_signals_login(vedioWidget *)),this,SLOT(m_vw_login(vedioWidget *)));
+        connect(vw,SIGNAL(m_signals_mousePress(vedioWidget*)),this,SLOT(m_vw_recentedClicked(vedioWidget*)));
         m_vw_loadLoc(vw);
         vw->show();
         vw->start();

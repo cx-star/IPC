@@ -63,6 +63,7 @@ private slots:
     void m_vw_saveLoc(vedioWidget *vw, const QPoint& p, const QSize& s);
     void m_vw_loadLoc(vedioWidget *vw);
     void m_vw_login(vedioWidget *vw);
+    void m_vw_recentedClicked(vedioWidget *vw);
 
     void on_pushButtonQuit_clicked();
 
